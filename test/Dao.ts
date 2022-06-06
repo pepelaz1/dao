@@ -19,6 +19,8 @@ describe("Dao", function () {
 
   let token: any;
 
+  let test: any;
+
   let dao: any;
 
   beforeEach(async function() {
@@ -29,9 +31,14 @@ describe("Dao", function () {
     token = await Erc20Token.deploy("Pepelaz","PPLZ", parseEther("10000"))
     await token.deployed()  
     
+    // deploy test contract
+    const Test = await ethers.getContractFactory('Test', acc1)
+    test = await Test.deploy()
+    await test.deployed()  
+
     // deploy Dao contract
     const Dao = await ethers.getContractFactory('Dao', acc1)
-    dao = await Dao.deploy(acc1.address, token.address, 3, 60*60*24*3)
+    dao = await Dao.deploy(acc1.address, token.address, parseEther('400'), 60*60*24*3)
     await dao.deployed()  
 
     token.mint(acc2.address, parseEther('10000'))
@@ -63,37 +70,56 @@ describe("Dao", function () {
 
     //--------
 
-    tx = await dao.addProposal('function 1', 'description 1')
+    // var jsonAbi =    [  {
+    //   "inputs": [
+    //     {
+    //       "internalType": "uint256",
+    //       "name": "_value",
+    //       "type": "uint256"
+    //     }
+    //   ],
+    //   "name": "sample",
+    //   "outputs": [],
+    //   "stateMutability": "nonpayable",
+    //   "type": "function"
+    //  }
+    //  ];
+    //  const iface = new ethers.utils.Interface(jsonAbi);
+    //  const calldata = iface.encodeFunctionData('sample',[999]);
+  
+    let calldata = "sample(uint256)"
+
+    tx = await dao.addProposal(test.address, calldata, 'description 1')
     await tx.wait()
 
-    tx = await dao.addProposal('function 2', 'description 2')
+    tx = await dao.addProposal(test.address, calldata, 'description 2')
     await tx.wait()
 
-    tx = await dao.addProposal('function 3', 'description 3')
+    tx = await dao.addProposal(test.address, calldata, 'description 3')
     await tx.wait()
 
     //--------
 
-    tx = await dao.connect(acc2).vote('description 1')
+    tx = await dao.connect(acc2).vote(0)
     await tx.wait()
 
-    tx = await dao.connect(acc2).vote('description 2')
+    tx = await dao.connect(acc2).vote(1)
     await tx.wait()
 
-    tx = await dao.connect(acc3).vote('description 1')
+    tx = await dao.connect(acc3).vote(0)
     await tx.wait()
 
-    tx = await dao.connect(acc3).vote('description 3')
+    tx = await dao.connect(acc3).vote(2)
     await tx.wait()
 
-    tx = await dao.connect(acc4).vote('description 3')
+    tx = await dao.connect(acc4).vote(2)
     await tx.wait()
 
     //--------
 
     await network.provider.send("evm_increaseTime", [60*60*24*3]) 
 
-    tx = await dao.finishProposal('description 1')
+    tx = await dao.finishProposal(0)
     await tx.wait()
 
  })

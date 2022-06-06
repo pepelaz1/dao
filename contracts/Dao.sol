@@ -17,13 +17,14 @@ contract Dao {
 
 
     struct Proposal {
-        string text;
+        address recepient;
+        string data;
         uint256 amount;
         uint256 start;
+        string desc;
     }
 
-    mapping(string => Proposal) proposals;
-
+    Proposal[] proposals;
 
     constructor(address _chairman, address _token, uint256 _minQuorum, uint256 _duration) {
         chairman = _chairman;
@@ -32,24 +33,31 @@ contract Dao {
         duration = _duration;
     }
 
-    function addProposal(string memory _text, string memory _desc) public {
+    function addProposal(address _recepient, string memory _data, string memory _desc) public {
         require(msg.sender == chairman, "only chairman can add proposals");
-        proposals[_desc] = Proposal({text: _text, amount: 0, start: block.timestamp});
+        proposals.push(Proposal({recepient: _recepient,data: _data, amount: 0, 
+                               start: block.timestamp, desc: _desc}));
     }
 
     function deposit(uint256 _amount) public {
         token.transferFrom(msg.sender, address(this), _amount);
         deposits[msg.sender] += _amount;
-
     }
 
-    function vote(string memory _desc) public {
-        proposals[_desc].amount += deposits[msg.sender];
+    function vote(uint256 _id) public {
+        proposals[_id].amount += deposits[msg.sender];
     }
 
-    function finishProposal(string memory _desc) public {
-        require(block.timestamp >= proposals[_desc].start + duration, "proposal is not over yet");
-        console.log(proposals[_desc].amount);
-
+    function finishProposal(uint256 _id) public {
+        require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
+        if (proposals[_id].amount > minQuorum) {
+            callTest(proposals[_id].recepient, proposals[_id].data, proposals[_id].amount);
+        }
     }
+
+    function callTest(address _recipient, string memory _signature, uint256 _amount) private {   
+        (bool success, ) = _recipient.call(abi.encodeWithSignature(_signature,_amount));
+        require(success, "error call func");
+    }
+
 }
