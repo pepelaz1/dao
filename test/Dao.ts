@@ -1,7 +1,6 @@
-import { isCommunityResourcable } from "@ethersproject/providers";
+
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
-import { BigNumber } from "ethers";
 const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 

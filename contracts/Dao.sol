@@ -5,16 +5,15 @@ import "hardhat/console.sol";
 import "./Erc20Token.sol";
 
 contract Dao {
-    Erc20Token public immutable token;
+    Erc20Token private immutable token;
 
-    address public immutable chairman;
+    address private immutable chairman;
 
-    uint256 public immutable minQuorum;
+    uint256 private immutable minQuorum;
 
-    uint256 public immutable duration;
+    uint256 private immutable duration;
 
-    mapping(address => uint256) deposits;
-
+    mapping(address => uint256) private deposits;
 
     struct Proposal {
         address recepient;
