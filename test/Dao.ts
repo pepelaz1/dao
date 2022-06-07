@@ -114,13 +114,29 @@ describe("Dao", function () {
     tx = await dao.connect(acc4).vote(2)
     await tx.wait()
 
+    await expect(dao.connect(acc2).vote(0)).to.be.revertedWith("already voted")
+
     //--------
+
+    await expect(dao.finishProposal(0)).to.be.revertedWith("proposal is not over yet")
 
     await network.provider.send("evm_increaseTime", [60*60*24*3]) 
 
     tx = await dao.finishProposal(0)
     await tx.wait()
 
+    await expect(dao.connect(acc2).withdraw()).to.be.revertedWith("not all proposals are over")
+
+    tx = await dao.finishProposal(1)
+    await tx.wait()
+
+    tx = await dao.finishProposal(2)
+    await tx.wait()
+
+    tx = await dao.connect(acc2).withdraw()
+    await tx.wait()
+
+    expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
  })
   
 });
