@@ -37,14 +37,11 @@ describe("Dao", function () {
 
     // deploy Dao contract
     const Dao = await ethers.getContractFactory('Dao', acc1)
-    dao = await Dao.deploy(acc1.address, token.address, parseEther('400'), 60*60*24*3)
+    dao = await Dao.deploy(token.address, parseEther('400'), 60*60*24*3)
     await dao.deployed()  
 
-    await network.provider.send("hardhat_setBalance", [
-      dao.address,
-      parseEther('3000').toHexString()
-    ]);
-
+    await dao.addChairman(acc1.address)
+    
     token.mint(acc2.address, parseEther('10000'))
     token.connect(acc2).approve(dao.address, MaxUint256)
 

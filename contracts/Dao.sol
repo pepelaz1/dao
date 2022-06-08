@@ -2,11 +2,12 @@
 pragma solidity ^0.8.0;
 
 import "./Erc20Token.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract Dao {
+contract Dao is AccessControl {
+    bytes32 public constant CHAIRMAN_ROLE = keccak256("CHAIRMAN_ROLE");
+
     Erc20Token private immutable token;
-
-    address private immutable chairman;
 
     uint256 private immutable minQuorum;
 
@@ -28,15 +29,18 @@ contract Dao {
 
     Proposal[] private proposals;
 
-    constructor(address _chairman, address _token, uint256 _minQuorum, uint256 _duration) {
-        chairman = _chairman;
+    constructor( address _token, uint256 _minQuorum, uint256 _duration) {
         token = Erc20Token(_token);
         minQuorum = _minQuorum;
         duration = _duration;
+         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function addProposal(address _targetContract, bytes memory _data, string memory _desc) public {
-        require(msg.sender == chairman, "only chairman can add proposals");
+    function addChairman(address _address) onlyRole(DEFAULT_ADMIN_ROLE) public {
+        _grantRole(CHAIRMAN_ROLE, _address);
+    }
+
+    function addProposal(address _targetContract, bytes memory _data, string memory _desc) onlyRole(CHAIRMAN_ROLE)  public {
         proposals.push(Proposal({
             targetContract: _targetContract,
             data: _data, 
@@ -64,7 +68,7 @@ contract Dao {
     function finishProposal(uint256 _id) public {
         require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
         if (proposals[_id].amount > minQuorum) {
-            callTest(proposals[_id].targetContract, proposals[_id].data, proposals[_id].amount);
+            callSignature(proposals[_id].targetContract, proposals[_id].data);
         }
     }
 
@@ -74,10 +78,8 @@ contract Dao {
         deposits[msg.sender] = 0;
     }
 
-    function callTest(address _targetContract, bytes memory _signature, uint256 _amount) private {   
-        (bool success, ) = _targetContract.call{value: _amount}(
-                                _signature
-                            );
+    function callSignature(address _targetContract, bytes memory _signature) private {   
+        (bool success, ) = _targetContract.call(_signature);
         require(success, "error call func");
     }
 }
