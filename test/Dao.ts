@@ -40,7 +40,7 @@ describe("Dao", function () {
     dao = await Dao.deploy(token.address, parseEther('400'), 60*60*24*3)
     await dao.deployed()  
 
-    await dao.addChairman(acc1.address)
+    await dao.grantRole(await dao.CHAIRMAN_ROLE(), acc1.address)
     
     token.mint(acc2.address, parseEther('10000'))
     token.connect(acc2).approve(dao.address, MaxUint256)
@@ -122,6 +122,7 @@ describe("Dao", function () {
     tx = await dao.finishProposal(0)
     await tx.wait()
 
+    await expect(dao.finishProposal(0)).to.be.revertedWith("can't finish proposal twice")
 
     tx = await dao.finishProposal(1)
     await tx.wait()

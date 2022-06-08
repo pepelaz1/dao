@@ -25,6 +25,7 @@ contract Dao is AccessControl {
         uint256 amount;
         uint256 start;
         string desc;
+        bool isOver;
     }
 
     Proposal[] private proposals;
@@ -36,17 +37,14 @@ contract Dao is AccessControl {
          _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
-    function addChairman(address _address) onlyRole(DEFAULT_ADMIN_ROLE) public {
-        _grantRole(CHAIRMAN_ROLE, _address);
-    }
-
     function addProposal(address _targetContract, bytes memory _data, string memory _desc) onlyRole(CHAIRMAN_ROLE)  public {
         proposals.push(Proposal({
             targetContract: _targetContract,
             data: _data, 
             amount: 0,
             start: block.timestamp,
-            desc: _desc
+            desc: _desc,
+            isOver: false
         }));
     }
 
@@ -67,6 +65,8 @@ contract Dao is AccessControl {
 
     function finishProposal(uint256 _id) public {
         require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
+        require( proposals[_id].isOver == false, "can't finish proposal twice");
+        proposals[_id].isOver = true;
         if (proposals[_id].amount > minQuorum) {
             callSignature(proposals[_id].targetContract, proposals[_id].data);
         }
