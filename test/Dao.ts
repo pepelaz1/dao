@@ -40,6 +40,11 @@ describe("Dao", function () {
     dao = await Dao.deploy(acc1.address, token.address, parseEther('400'), 60*60*24*3)
     await dao.deployed()  
 
+    await network.provider.send("hardhat_setBalance", [
+      dao.address,
+      parseEther('3000').toHexString()
+    ]);
+
     token.mint(acc2.address, parseEther('10000'))
     token.connect(acc2).approve(dao.address, MaxUint256)
 
@@ -69,25 +74,18 @@ describe("Dao", function () {
 
     //--------
 
-    // var jsonAbi =    [  {
-    //   "inputs": [
-    //     {
-    //       "internalType": "uint256",
-    //       "name": "_value",
-    //       "type": "uint256"
-    //     }
-    //   ],
-    //   "name": "sample",
-    //   "outputs": [],
-    //   "stateMutability": "nonpayable",
-    //   "type": "function"
-    //  }
-    //  ];
-    //  const iface = new ethers.utils.Interface(jsonAbi);
-    //  const calldata = iface.encodeFunctionData('sample',[999]);
-  
-    let calldata = "sample(uint256)"
+    var jsonAbi =    [  {
+      "inputs": [],
+      "name": "sample",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+     }
+    ];
 
+    const iface = new ethers.utils.Interface(jsonAbi);
+    const calldata = iface.encodeFunctionData('sample',[]);
+  
     tx = await dao.addProposal(test.address, calldata, 'description 1')
     await tx.wait()
 
@@ -127,14 +125,19 @@ describe("Dao", function () {
 
     await expect(dao.connect(acc2).withdraw()).to.be.revertedWith("not all proposals are over")
 
-    tx = await dao.finishProposal(1)
-    await tx.wait()
 
-    tx = await dao.finishProposal(2)
+    tx = await dao.finishProposal(1)
     await tx.wait()
 
     tx = await dao.connect(acc2).withdraw()
     await tx.wait()
+
+    tx = await dao.finishProposal(2)
+    await tx.wait()
+    
+ 
+
+   
 
     expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
  })

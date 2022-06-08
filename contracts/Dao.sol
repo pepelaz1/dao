@@ -13,15 +13,15 @@ contract Dao {
 
     uint256 private immutable duration;
 
-    uint256 private proposalsCount;
-
     mapping(address => uint256) private deposits;
 
-    mapping(address => mapping(uint256 => bool)) private voted;
+    uint256 private proposalsFinished;
+    
+    mapping(address => uint256) private voted;
 
     struct Proposal {
         address targetContract;
-        string data;
+        bytes data;
         uint256 amount;
         uint256 start;
         string desc;
@@ -36,7 +36,7 @@ contract Dao {
         duration = _duration;
     }
 
-    function addProposal(address _targetContract, string memory _data, string memory _desc) public {
+    function addProposal(address _targetContract, bytes memory _data, string memory _desc) public {
         require(msg.sender == chairman, "only chairman can add proposals");
         proposals.push(Proposal({
             targetContract: _targetContract,
@@ -45,7 +45,6 @@ contract Dao {
             start: block.timestamp,
             desc: _desc
         }));
-        proposalsCount++;
     }
 
     function deposit(uint256 _amount) public {
@@ -54,9 +53,9 @@ contract Dao {
     }
 
     function vote(uint256 _id) public {
-        require(voted[msg.sender][_id] == false, "already voted");
+        require(voted[msg.sender] & (1 << _id) == 0, "already voted");
         proposals[_id].amount += deposits[msg.sender];
-        voted[msg.sender][_id] = true;
+        voted[msg.sender] |= (1 << _id);
     }
 
     function finishProposal(uint256 _id) public {
@@ -64,18 +63,19 @@ contract Dao {
         if (proposals[_id].amount > minQuorum) {
             callTest(proposals[_id].targetContract, proposals[_id].data, proposals[_id].amount);
         }
-        proposalsCount--;
+        proposalsFinished |= (1 << _id);
     }
 
     function withdraw() external {
-        require(proposalsCount == 0, "not all proposals are over");
+        require(voted[msg.sender] & proposalsFinished == voted[msg.sender], "not all proposals are over");
         token.transfer(msg.sender, deposits[msg.sender]);
         deposits[msg.sender] = 0;
     }
 
-    function callTest(address _targetContract, string memory _signature, uint256 _amount) private {   
-        (bool success, ) = _targetContract.call(abi.encodeWithSignature(_signature,_amount));
+    function callTest(address _targetContract, bytes memory _signature, uint256 _amount) private {   
+        (bool success, ) = _targetContract.call{value: _amount}(
+                                _signature
+                            );
         require(success, "error call func");
     }
-
 }
