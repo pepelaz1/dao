@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
-import "hardhat/console.sol";
 import "./Erc20Token.sol";
 
 contract Dao {
@@ -15,9 +14,9 @@ contract Dao {
 
     mapping(address => uint256) private deposits;
 
-    uint256 private proposalsFinished;
+    mapping(address => uint256) private lastProposals;
     
-    mapping(address => uint256) private voted;
+    mapping(address => mapping(uint256 => bool)) private voted;
 
     struct Proposal {
         address targetContract;
@@ -53,9 +52,13 @@ contract Dao {
     }
 
     function vote(uint256 _id) public {
-        require(voted[msg.sender] & (1 << _id) == 0, "already voted");
+        require(voted[msg.sender][_id] == false, "already voted");
         proposals[_id].amount += deposits[msg.sender];
-        voted[msg.sender] |= (1 << _id);
+        voted[msg.sender][_id] = true;
+
+        if (_id > lastProposals[msg.sender]) {
+            lastProposals[msg.sender] = _id;
+        }
     }
 
     function finishProposal(uint256 _id) public {
@@ -63,11 +66,10 @@ contract Dao {
         if (proposals[_id].amount > minQuorum) {
             callTest(proposals[_id].targetContract, proposals[_id].data, proposals[_id].amount);
         }
-        proposalsFinished |= (1 << _id);
     }
 
     function withdraw() external {
-        require(voted[msg.sender] & proposalsFinished == voted[msg.sender], "not all proposals are over");
+        require(block.timestamp > proposals[lastProposals[msg.sender]].start + duration, "not all proposals are over");
         token.transfer(msg.sender, deposits[msg.sender]);
         deposits[msg.sender] = 0;
     }
