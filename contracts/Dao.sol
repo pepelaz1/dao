@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.8.0;
 
+import "hardhat/console.sol";
 import "./Erc20Token.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -21,11 +22,11 @@ contract Dao is AccessControl {
 
     struct Proposal {
         address targetContract;
+        bool isOver;
         bytes data;
         uint256 amount;
         uint256 start;
         string desc;
-        bool isOver;
     }
 
     Proposal[] private proposals;
@@ -67,7 +68,7 @@ contract Dao is AccessControl {
         require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
         require( proposals[_id].isOver == false, "can't finish proposal twice");
         proposals[_id].isOver = true;
-        if (proposals[_id].amount > minQuorum) {
+        if(proposals[_id].amount > minQuorum) {
             callSignature(proposals[_id].targetContract, proposals[_id].data);
         }
     }
@@ -79,7 +80,7 @@ contract Dao is AccessControl {
     }
 
     function callSignature(address _targetContract, bytes memory _signature) private {   
-        (bool success, ) = _targetContract.call(_signature);
-        require(success, "error call func");
+        (bool success, bytes memory returnData) = _targetContract.call(_signature);
+        require(success, string(returnData));
     }
 }
