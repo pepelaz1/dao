@@ -81,6 +81,10 @@ contract Dao is AccessControl {
 
     function callSignature(address _targetContract, bytes memory _signature) private {   
         (bool success, bytes memory returnData) = _targetContract.call(_signature);
-        require(success, string(returnData));
+         if (success == false) {
+            assembly {
+                revert(add(returnData, 32), mload(returnData))
+            }
+         }
     }
 }

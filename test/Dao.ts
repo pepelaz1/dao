@@ -142,6 +142,9 @@ describe("Dao", function () {
 
     expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
 
+    tx = await dao.finishProposal(2)
+    await tx.wait()
+
     await expect(dao.finishProposal(2)).to.be.revertedWith("test revert")
 
     await expect(test.sampleRevert()).to.be.revertedWith("test revert")
