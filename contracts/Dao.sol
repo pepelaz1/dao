@@ -66,9 +66,9 @@ contract Dao is AccessControl {
 
     function finishProposal(uint256 _id) public {
         require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
-        require( proposals[_id].isOver == false, "can't finish proposal twice");
+        require(proposals[_id].isOver == false, "can't finish proposal twice");
         proposals[_id].isOver = true;
-        if(proposals[_id].amount > minQuorum) {
+        if (proposals[_id].amount > minQuorum) {
             callSignature(proposals[_id].targetContract, proposals[_id].data);
         }
     }

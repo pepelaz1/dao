@@ -5,6 +5,9 @@ import "hardhat/console.sol";
 
 contract Test {
     function sample() external payable {
-        console.log(msg.value);
+    }
+
+    function sampleRevert() external payable {
+        revert("test revert");
     }
 }

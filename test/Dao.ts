@@ -71,7 +71,7 @@ describe("Dao", function () {
 
     //--------
 
-    var jsonAbi =    [  {
+    var abi1 =    [  {
       "inputs": [],
       "name": "sample",
       "outputs": [],
@@ -79,17 +79,27 @@ describe("Dao", function () {
       "type": "function"
      }
     ];
-
-    const iface = new ethers.utils.Interface(jsonAbi);
-    const calldata = iface.encodeFunctionData('sample',[]);
   
-    tx = await dao.addProposal(test.address, calldata, 'description 1')
+    const calldata1 = new ethers.utils.Interface(abi1).encodeFunctionData('sample',[]);
+  
+    tx = await dao.addProposal(test.address, calldata1, 'description 1')
     await tx.wait()
 
-    tx = await dao.addProposal(test.address, calldata, 'description 2')
+    tx = await dao.addProposal(test.address, calldata1, 'description 2')
     await tx.wait()
 
-    tx = await dao.addProposal(test.address, calldata, 'description 3')
+    var abi2 =    [  {
+      "inputs": [],
+      "name": "sampleRevert",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+     }
+    ];
+
+    const calldata2 = new ethers.utils.Interface(abi2).encodeFunctionData('sampleRevert',[]);
+
+    tx = await dao.addProposal(test.address, calldata2, 'description 3')
     await tx.wait()
 
     //--------
@@ -130,11 +140,12 @@ describe("Dao", function () {
     tx = await dao.connect(acc2).withdraw()
     await tx.wait()
 
-    tx = await dao.finishProposal(2)
-    await tx.wait()
-    
-
     expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
+
+    await expect(dao.finishProposal(2)).to.be.revertedWith("test revert")
+
+    await expect(test.sampleRevert()).to.be.revertedWith("test revert")
+
  })
   
 });
