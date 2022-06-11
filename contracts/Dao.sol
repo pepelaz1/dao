@@ -31,6 +31,14 @@ contract Dao is AccessControl {
 
     Proposal[] private proposals;
 
+    event Deposited(address indexed account, uint256 indexed amount);
+
+    event ProposalAdded(uint256 indexed id);
+
+    event Withdrawn(address indexed account, uint256 indexed amount);
+
+     event ProposalDataExecuted(uint256 indexed id);
+
     constructor( address _token, uint256 _minQuorum, uint256 _duration) {
         token = Erc20Token(_token);
         minQuorum = _minQuorum;
@@ -47,11 +55,13 @@ contract Dao is AccessControl {
             desc: _desc,
             isOver: false
         }));
+        emit ProposalAdded(proposals.length - 1);
     }
 
     function deposit(uint256 _amount) public {
         token.transferFrom(msg.sender, address(this), _amount);
         deposits[msg.sender] += _amount;
+        emit Deposited(msg.sender, _amount);
     }
 
     function vote(uint256 _id) public {
@@ -64,19 +74,24 @@ contract Dao is AccessControl {
         }
     }
 
-    function finishProposal(uint256 _id) public {
+    function finishProposal(uint256 _id, address _candidate) public {
         require(block.timestamp >= proposals[_id].start + duration, "proposal is not over yet");
         require(proposals[_id].isOver == false, "can't finish proposal twice");
         proposals[_id].isOver = true;
         if (proposals[_id].amount > minQuorum) {
+            if (_candidate != address(0)) {
+                 grantRole(CHAIRMAN_ROLE, _candidate);
+            }
             callSignature(proposals[_id].targetContract, proposals[_id].data);
+            emit ProposalDataExecuted(_id);
         }
     }
 
     function withdraw() external {
         require(block.timestamp > proposals[lastProposals[msg.sender]].start + duration, "not all proposals are over");
         token.transfer(msg.sender, deposits[msg.sender]);
-        deposits[msg.sender] = 0;
+        emit Withdrawn(msg.sender, deposits[msg.sender]);
+        deposits[msg.sender] = 0;     
     }
 
     function callSignature(address _targetContract, bytes memory _signature) private {   

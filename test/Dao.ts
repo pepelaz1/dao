@@ -5,7 +5,6 @@ const { parseEther } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 
-
 describe("Dao", function () {
 
   let acc1: any;
@@ -22,7 +21,8 @@ describe("Dao", function () {
 
   let dao: any;
 
-  beforeEach(async function() {
+  //beforeEach(async function() {
+  step('init', async function() {
     [acc1, acc2, acc3, acc4] = await ethers.getSigners()
 
     // deploy ERC20 token
@@ -50,13 +50,9 @@ describe("Dao", function () {
 
     token.mint(acc4.address, parseEther('10000'))
     token.connect(acc4).approve(dao.address, MaxUint256)
-  })
+  });
 
-  it("should be deployed", async function(){
-     expect(dao.address).to.be.properAddress
-  })
-
-  it("test", async function(){
+  step('deposit', async function() {
     let tx = await dao.connect(acc2).deposit(parseEther('100'))
     await tx.wait()
 
@@ -68,9 +64,9 @@ describe("Dao", function () {
 
     tx = await dao.connect(acc4).deposit(parseEther('500'))
     await tx.wait()
+  });
 
-    //--------
-
+  step('add proposals', async function() {
     var abi1 =    [  {
       "inputs": [],
       "name": "sample",
@@ -79,10 +75,10 @@ describe("Dao", function () {
       "type": "function"
      }
     ];
-  
+
     const calldata1 = new ethers.utils.Interface(abi1).encodeFunctionData('sample',[]);
   
-    tx = await dao.addProposal(test.address, calldata1, 'description 1')
+    let tx = await dao.addProposal(test.address, calldata1, 'description 1')
     await tx.wait()
 
     tx = await dao.addProposal(test.address, calldata1, 'description 2')
@@ -101,10 +97,10 @@ describe("Dao", function () {
 
     tx = await dao.addProposal(test.address, calldata2, 'description 3')
     await tx.wait()
-
-    //--------
-
-    tx = await dao.connect(acc2).vote(0)
+  });
+  
+  step('vote', async function() {
+    let tx = await dao.connect(acc2).vote(0)
     await tx.wait()
 
     tx = await dao.connect(acc2).vote(1)
@@ -120,21 +116,21 @@ describe("Dao", function () {
     await tx.wait()
 
     await expect(dao.connect(acc2).vote(0)).to.be.revertedWith("already voted")
+  });
 
-    //--------
-
-    await expect(dao.finishProposal(0)).to.be.revertedWith("proposal is not over yet")
+  step('finish', async function() {
+    await expect(dao.finishProposal(0, acc2.address)).to.be.revertedWith("proposal is not over yet")
 
     await expect(dao.connect(acc2).withdraw()).to.be.revertedWith("not all proposals are over")
 
     await network.provider.send("evm_increaseTime", [60*60*24*3]) 
 
-    tx = await dao.finishProposal(0)
+    let tx = await dao.finishProposal(0, acc2.address)
     await tx.wait()
 
-    await expect(dao.finishProposal(0)).to.be.revertedWith("can't finish proposal twice")
+    await expect(dao.finishProposal(0, acc2.address)).to.be.revertedWith("can't finish proposal twice")
 
-    tx = await dao.finishProposal(1)
+    tx = await dao.finishProposal(1, acc2.address)
     await tx.wait()
 
     tx = await dao.connect(acc2).withdraw()
@@ -142,13 +138,11 @@ describe("Dao", function () {
 
     expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
 
-    tx = await dao.finishProposal(2)
-    await tx.wait()
-
-    await expect(dao.finishProposal(2)).to.be.revertedWith("test revert")
+    await expect(dao.finishProposal(2, acc2.address)).to.be.revertedWith("test revert")
 
     await expect(test.sampleRevert()).to.be.revertedWith("test revert")
 
- })
-  
+    expect(await dao.hasRole(await dao.CHAIRMAN_ROLE(), acc2.address)).to.equal(true)
+  });
 });
+
