@@ -119,18 +119,18 @@ describe("Dao", function () {
   });
 
   step('finish', async function() {
-    await expect(dao.finishProposal(0, acc2.address)).to.be.revertedWith("proposal is not over yet")
+    await expect(dao.finishProposal(0)).to.be.revertedWith("proposal is not over yet")
 
     await expect(dao.connect(acc2).withdraw()).to.be.revertedWith("not all proposals are over")
 
     await network.provider.send("evm_increaseTime", [60*60*24*3]) 
 
-    let tx = await dao.finishProposal(0, acc2.address)
+    let tx = await dao.finishProposal(0)
     await tx.wait()
 
-    await expect(dao.finishProposal(0, acc2.address)).to.be.revertedWith("can't finish proposal twice")
+    await expect(dao.finishProposal(0)).to.be.revertedWith("can't finish proposal twice")
 
-    tx = await dao.finishProposal(1, acc2.address)
+    tx = await dao.finishProposal(1)
     await tx.wait()
 
     tx = await dao.connect(acc2).withdraw()
@@ -138,11 +138,9 @@ describe("Dao", function () {
 
     expect(await token.balanceOf(acc2.address)).to.equal(parseEther("10000"))
 
-    await expect(dao.finishProposal(2, acc2.address)).to.be.revertedWith("test revert")
+    await expect(dao.finishProposal(2)).to.be.revertedWith("test revert")
 
     await expect(test.sampleRevert()).to.be.revertedWith("test revert")
-
-    expect(await dao.hasRole(await dao.CHAIRMAN_ROLE(), acc2.address)).to.equal(true)
   });
 });
 
